@@ -1,0 +1,13 @@
+# Large data files
+*.h5ad
+*.h5
+*.csv
+*.parquet
+*.pkl
+*.npy
+*.npz
+*.zip
+
+#old notebooks
+old/
+References/
