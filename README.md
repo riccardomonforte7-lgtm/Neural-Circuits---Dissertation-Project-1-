@@ -134,6 +134,9 @@ Future work could improve the analysis by:
 - Comparing the predicted connectivity labels with independently measured projectomic or BARseq data
 - Performing a more detailed biological interpretation of the enriched MERFISH clusters
 
+## Code
+The python code for this project is accessible [here](Notebook/notebook.ipynb)
+
 ## Data availability
 
 The raw datasets are not included in this repository because they are subject to data access restrictions and cannot be shared publicly.
