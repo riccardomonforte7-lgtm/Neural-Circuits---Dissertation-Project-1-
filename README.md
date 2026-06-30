@@ -135,7 +135,7 @@ Future work could improve the analysis by:
 - Performing a more detailed biological interpretation of the enriched MERFISH clusters
 
 ## Code
-The python code for this project is accessible [here](Notebook/notebook.ipynb)
+The Python code for this project is accessible [here](Notebook/Notebook.ipynb)
 
 ## Data availability
 
