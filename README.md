@@ -138,8 +138,8 @@ Future work could improve the analysis by:
 
 The raw datasets are not included in this repository because they are subject to data access restrictions and cannot be shared publicly.
 
-Please read ()
+Please read (data/README.md) for further details.
 
 ## Report
 
-The full dissertation report is available [here](report/S2882823_dissertation_final.pdf).
+The full dissertation report is available [here](Report/S2882823_dissertation_final.pdf).
