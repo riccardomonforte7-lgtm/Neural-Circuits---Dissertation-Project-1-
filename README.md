@@ -1,84 +1,145 @@
-# Malawi Child Depression ML
+# Discovering Patterns in Neuronal Connectivity and Cellular Identity: Bridging SNR and MERFISH Data Through Soma Location
 
-Machine learning project using UNICEF Multiple Indicator Cluster Survey (MICS) data to investigate whether children aged 5–17 in Malawi are likely to report any form of depression related symptoms.
+Statistical project using unsupervised and supervised learning techniques to investigate the relationship between neuronal connectivity, anatomical position and cellular identity in the mouse entorhinal cortex.
+
+The project combines two complementary datasets:
+
+- The **SNR dataset**, which contains single-neuron reconstructions and describes both where individual neurons send their axons and where their somata are located in the brain.
+- The **MERFISH dataset**, which contains spatial transcriptomic data for a much larger number of cells, describing gene expression while preserving anatomical location information.
 
 ## Overview
 
-This project analyses a subset of UNICEF MICS data collected in Malawi during 2019–2020. The dataset includes child-level, maternal, and household-level variables, covering aspects such as child background, child labour, household characteristics, water and sanitation, maternal background, life satisfaction, victimisation, and family context.
+This project analyses a subset of Single Neuron Reconstruction data containing tracing information for **237 neurons** extracted from **11 mouse brains**. The dataset includes **67 features**, including neuron identifiers (`mouseID`, `neuronNR`, `neuron_ID`), spatial coordinates (`x`, `y`, `z`) in the Allen Mouse Brain Common Coordinate Framework, and projection-area variables describing axonal length and endpoint counts across target regions.
 
-The target variable is based on survey responses to whether the child seemed very sad or depressed. For the modelling task, the original responses were converted into a binary outcome:
+The SNR analysis is then related to evidence from the MERFISH dataset, which contains spatial transcriptomic information for **48,615 entorhinal cortex cells** and **8,460 genes**. The shared spatial coordinates make it possible to compare connectivity-defined neuronal groups with gene-expression-based cellular identity patterns.
 
-- **No Depression**: the child never had depressive symptoms.
-- **Depression** : all responses other than "never".
-
-The aim of the project was to build a **predictive model** to classify whether children reported any depressive symptoms, while also identifying the **factors** that appeared most relevant in explaining this outcome.
+The aim of the project was to identify axonal projection patterns and assess whether projection-defined neuronal groups are associated with soma location and MERFISH-derived molecular labels.
 
 ## Methodology
 
 The analysis was carried out in Python and included:
 
-- Exploratory Data Analysis on numeric and categorical variables
-- Preprocessing pipelines for different variable types
-- Handling of missing values and categorical encodings
-- Feature selection using L1-penalised Logistic Regression
-- Final Logistic Regression model with L2 penalty
-- Comparison with a Random Forest classifier
-- Interpretation of selected variables through model coefficients and feature importance
+- Exploratory Data Analysis of SNR projection variables and MERFISH gene-expression data
+- Preprocessing and standardisation of connectivity, spatial and transcriptomic features
+- Dimensionality reduction using Principal Component Analysis (PCA)
+- Connectivity-based clustering of SNR neurons using hierarchical clustering, K-means++ and spectral clustering
+- Spatial classification of projection-defined SNR labels using soma coordinates
+- Comparison of several supervised classifiers, including Logistic Regression, Random Forest, SVM with RBF kernel and XGBoost
+- Gene-expression clustering of MERFISH cells
+- Transfer of predicted SNR-like connectivity labels to MERFISH cells
+- Enrichment analysis between MERFISH gene-expression clusters and predicted SNR-like labels
+- Permutation testing and Benjamini-Hochberg correction for multiple testing
 
-### Feature selection approach
+## Data
 
-Feature selection was performed using a repeated L1-penalised Logistic Regression procedure.
+### SNR dataset
 
-The model was repeatedly fitted on bootstrap samples of the training set. At each iteration, the L1 penalty encouraged sparse solutions by shrinking some coefficients to zero. Features were then ranked according to how frequently they were selected across the repeated fitting process.
+The SNR dataset contains spatial and connectivity information for 237 neurons in layer 5a of the entorhinal cortex. Projection variables are recorded using two main suffixes:
 
-Only variables that appeared consistently above a chosen selection frequency threshold were retained for the final model. This was done to reduce the effect of unstable feature selection and focus on predictors that were more consistently informative across resampled versions of the data.
+- `_endpoint`: number of axon terminals observed in a given projection area
+- `_length`: total axonal length observed in a given projection area
 
-## Models
+For the final clustering pipeline, only the axonal length variables were retained, because they provide a more informative measure of projection strength and avoid redundancy with endpoint counts.
 
-The final modelling pipeline compared two main approaches:
+### MERFISH dataset
 
-1. **Logistic Regression**
-   - L1 penalty used for feature selection
-   - L2-penalised Logistic Regression used as the final interpretable model
+The MERFISH dataset contains spatial transcriptomic information for neurons in the entorhinal cortex. It is stored as an AnnData object, where rows correspond to cells and columns correspond to genes.
 
-2. **Random Forest Classifier**
-   - Used as a more flexible model to assess whether non-linear patterns could improve predictive performance (using all features available in the dataset)
+The dataset includes:
+
+- gene-expression values
+- spatial coordinates in the Allen Common Coordinate Framework
+- brain region annotations
+- transcriptomic labels such as `class`, `subclass` and `supertype`
+
+In this project, gene-expression values were used to identify molecular cell groups, while spatial coordinates were used to relate MERFISH cells to the SNR-based connectivity analysis.
+
+## Models and analysis
+
+### SNR connectivity clustering
+
+The SNR connectivity matrix was built using the 29 axonal length variables. After standardisation, PCA was applied and the first **18 principal components** were retained, explaining approximately **90%** of the variance.
+
+Several clustering methods were compared:
+
+1. **Agglomerative hierarchical clustering**
+   - Average and complete linkage were considered
+   - Cosine dissimilarity was used to compare relative projection patterns
+
+2. **K-means++**
+   - Used as a compact, centroid-based clustering baseline
+
+3. **Spectral clustering**
+   - Used as a more flexible graph-based method
+   - Implemented with an RBF kernel
+
+The selected SNR clustering solution was **spectral clustering with two clusters** and **gamma = 0.17**, chosen primarily on the basis of silhouette score.
+
+### Spatial classification
+
+The projection-defined SNR cluster labels were then used as the target variable in a supervised classification task. The predictors were the soma coordinates (`x`, `y`, `z`).
+
+The following classifiers were compared:
+
+- Logistic Regression
+- Logistic Regression with pairwise coordinate interactions
+- Random Forest
+- Support Vector Machine with RBF kernel
+- XGBoost
+
+Model selection focused on out-of-sample predictive performance on a held-out test set. Macro F1-score was used as the main metric because the SNR cluster labels were imbalanced.
+
+The final selected classifier was an **SVM with RBF kernel**, which achieved the best overall test-set performance among the models considered.
+
+### MERFISH gene-expression clustering
+
+For MERFISH, the standardised gene-expression matrix was reduced using PCA. The first **150 principal components** were retained, explaining approximately **90%** of the variance.
+
+Gene-expression clustering was then performed on the PCA representation. The final selected solution was **hierarchical clustering with average linkage and cosine dissimilarity**, producing **11 MERFISH clusters**.
+
+### SNR-MERFISH comparison
+
+The selected SNR spatial classifier was applied to the MERFISH soma coordinates to assign each MERFISH cell a predicted SNR-like connectivity label.
+
+These predicted labels were compared with the MERFISH gene-expression clusters using enrichment analysis. Enrichment was defined as the ratio between the frequency of a predicted SNR-like label within a MERFISH cluster and its overall frequency in the MERFISH dataset.
+
+Permutation testing was used to assess whether the observed enrichment values were larger than expected under random label assignment. Benjamini-Hochberg correction was then applied to control the false discovery rate across multiple cluster-label comparisons.
 
 ## Results
 
-The final chosen model was an L2-penalised Logistic Regression fitted on the restricted feature set. This choice better matched the aim of the project: the model achieved performance similar to the Random Forest, while allowing a clearer interpretation of the selected coefficients.
+The analysis identified two main projection-defined SNR groups with distinct connectivity patterns. These groups were partly predictable from soma location, suggesting that neuronal connectivity is spatially organised within the entorhinal cortex.
 
-In particular, the Logistic Regression model was useful as an interpretable screening tool, allowing inspection of the direction and magnitude of associations between selected variables and the outcome. The Random Forest model showed similar performance, suggesting that the available predictors contained only limited predictive signal for this classification task.
+When the spatial classifier was transferred to the MERFISH dataset, the predicted SNR-like labels were not uniformly distributed across MERFISH gene-expression clusters. Some transcriptional clusters showed significant enrichment or depletion of specific predicted connectivity-related labels after permutation testing and multiple-testing correction.
 
-Overall, the analysis suggests that depression-related responses may be associated with factors linked to household conditions, maternal circumstances, discrimination or victimisation, and family stress. 
+Overall, the results suggest a partial relationship between neuronal connectivity, anatomical position and gene-expression-based cellular identity. The enrichment patterns indicate that some molecularly defined groups may be associated with distinct predicted connectivity profiles.
 
 ## Limitations
 
 Several limitations should be considered:
 
-- The target variable is based on a single survey question about whether the child seemed very sad or depressed. This is only a rough proxy for depression and not a clinical diagnosis.
-- Different severities of depression-related responses were collapsed into a single binary outcome, which may remove useful information.
-- Some important aspects of child mental health were not available in the dataset, such as more detailed diagnostic indicators or broader measures of emotional and functional impairment.
-- Missing values were present in several variables, and imputation may introduce additional uncertainty.
-- The analysis is observational, so the model can identify associations but cannot establish causal relationships.
-- Predictive performance was moderate, suggesting that the available variables only partially explain the outcome.
+- The SNR dataset is relatively small, with only 237 neurons, which limits the stability of both clustering and supervised classification.
+- The MERFISH cells do not have directly observed axonal projections, so the assigned SNR-like labels are predicted connectivity-related labels rather than measured projection identities.
+- The transfer from SNR to MERFISH relies on the assumption that spatial relationships learned from the SNR dataset can be meaningfully applied to the MERFISH dataset.
+- A more robust assessment of predictive performance would require repeated train-test resampling, bootstrap validation or permutation testing of the full classification pipeline.
+- The biological interpretation of the identified clusters remains exploratory and would require additional validation using independent data or experimental evidence.
 
 ## Possible improvements
 
 Future work could improve the analysis by:
 
-- Using a richer and more clinically specific measure of childhood depression
-- Modelling different severity levels instead of collapsing the outcome into a binary variable
-- Exploring spatial or multilevel models to account for geographic and household-level clustering
-- Incorporating additional relevant variables from the extended MICS data sources
-- Investigating whether different groups of children show different patterns of risk factors
+- Increasing the number of single-neuron reconstructions used for connectivity-based clustering
+- Repeating the supervised classification pipeline across multiple train-test splits to assess stability
+- Testing alternative spatial models for the relationship between soma location and projection-defined labels
+- Incorporating additional molecular annotations from the MERFISH taxonomy
+- Comparing the predicted connectivity labels with independently measured projectomic or BARseq data
+- Performing a more detailed biological interpretation of the enriched MERFISH clusters
 
-## Data
+## Data availability
 
-The raw dataset is not included in this repository because it is subject to data agreements and cannot be shared publicly.
+The raw datasets are not included in this repository because they are subject to data access restrictions and cannot be shared publicly.
 
-Please refer to the official UNICEF MICS website for information on data access and documentation.
+Please read ()
 
 ## Report
 
-The full project report is available [here](report/final_report.pdf).
+The full dissertation report is available [here](report/S2882823_dissertation_final.pdf).
