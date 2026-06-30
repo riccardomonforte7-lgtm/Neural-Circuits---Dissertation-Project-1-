@@ -138,7 +138,7 @@ Future work could improve the analysis by:
 
 The raw datasets are not included in this repository because they are subject to data access restrictions and cannot be shared publicly.
 
-Please read (data/README.md) for further details.
+Please read [data disclousure](data/README.md) for further details.
 
 ## Report
 
