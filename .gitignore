@@ -7,6 +7,8 @@
 *.npy
 *.npz
 *.zip
+*.jpg
+*.png
 
 #old notebooks
 old/
